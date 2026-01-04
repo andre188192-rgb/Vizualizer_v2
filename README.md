@@ -9,6 +9,10 @@
 - `frontend/` — Web-клиент (React + Vite).
 - `desktop/` — инженерное приложение (PyQt5).
 - `docs/` — документация (Markdown) и диаграммы.
+- `backend/` — FastAPI сервер.
+- `frontend/` — Web-клиент (React + Vite).
+- `desktop/` — инженерное приложение (PyQt5).
+- `docs/` — документация (.docx) и диаграммы.
 
 ## Быстрый старт
 
@@ -41,6 +45,7 @@ uvicorn app.main:app --reload
 cd frontend
 npm install
 VITE_API_USER=admin VITE_API_PASS=admin npm run dev
+npm run dev
 ```
 
 ### Desktop

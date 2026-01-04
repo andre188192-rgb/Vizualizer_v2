@@ -8,6 +8,8 @@ import { apiFetch, apiKeyFetch } from '../services/api.js'
 
 const API_KEY = 'changeme'
 
+const API_BASE = 'http://localhost:8000'
+
 export default function App() {
   const [latest, setLatest] = useState(null)
   const [events, setEvents] = useState([])
@@ -17,6 +19,10 @@ export default function App() {
 
   const loadEvents = async () => {
     const data = await apiKeyFetch('/events')
+
+  const loadEvents = async () => {
+    const response = await fetch(`${API_BASE}/events`)
+    const data = await response.json()
     setEvents(data.events ?? [])
   }
 
@@ -43,6 +49,20 @@ export default function App() {
     const interval = setInterval(() => {
       loadMetrics()
     }, 2000)
+    const response = await fetch(`${API_BASE}/maintenance`)
+    const data = await response.json()
+    setMaintenance(data.maintenance ?? [])
+  }
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const response = await fetch(`${API_BASE}/metrics`)
+      const data = await response.json()
+      const last = data.metrics?.[data.metrics.length - 1]
+      setLatest(last ?? null)
+    }, 2000)
+    loadEvents()
+    loadMaintenance()
     return () => clearInterval(interval)
   }, [])
 
@@ -50,6 +70,9 @@ export default function App() {
     await apiKeyFetch('/snapshot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+    await fetch(`${API_BASE}/snapshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ minutes: 5 })
     })
     loadEvents()
@@ -57,6 +80,7 @@ export default function App() {
 
   const resetAlarm = async () => {
     await apiKeyFetch('/alarm/reset', { method: 'POST', headers: { 'X-API-Key': API_KEY } })
+    await fetch(`${API_BASE}/alarm/reset`, { method: 'POST' })
     loadEvents()
   }
 
@@ -124,6 +148,14 @@ export default function App() {
               severity: entry.performed_by
             }))}
           />
+          <MaintenanceForm onSaved={loadMaintenance} />
+          <EventTable events={maintenance.map((entry) => ({
+            id: entry.id,
+            timestamp: entry.timestamp,
+            category: entry.maintenance_type,
+            message: entry.comment ?? '-',
+            severity: entry.performed_by
+          }))} />
         </section>
       </main>
     </div>
