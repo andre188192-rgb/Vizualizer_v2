@@ -41,6 +41,7 @@ class NetworkManager {
     if (!client.connected()) {
       return;
     }
+    StaticJsonDocument<768> doc;
     StaticJsonDocument<512> doc;
     doc["timestamp"] = readings.timestamp;
     doc["state"] = state;
@@ -73,6 +74,26 @@ class NetworkManager {
   WiFiClient wifi;
   PubSubClient client;
   DeviceConfig settings;
+  uint32_t lastWifiAttempt = 0;
+  uint32_t lastMqttAttempt = 0;
+
+  void reconnectWifi() {
+    if (millis() - lastWifiAttempt < 5000) {
+      return;
+    }
+    lastWifiAttempt = millis();
+    WiFi.disconnect();
+    WiFi.begin(settings.wifi.ssid.c_str(), settings.wifi.password.c_str());
+  }
+
+  void reconnectMqtt() {
+    if (settings.mqtt_host.length() == 0) {
+      return;
+    }
+    if (millis() - lastMqttAttempt < 5000) {
+      return;
+    }
+    lastMqttAttempt = millis();
 
   void reconnect() {
     if (settings.mqtt_host.length() == 0) {

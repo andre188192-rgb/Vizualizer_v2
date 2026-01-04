@@ -71,6 +71,8 @@ void sensorTask(void *param) {
 void loggerTask(void *param) {
   for (;;) {
     dataLogger.logReadings(latestReadings);
+    esp_task_wdt_reset();
+    vTaskDelay(pdMS_TO_TICKS(deviceConfig.logging.interval_ms));
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
@@ -79,6 +81,9 @@ void networkTask(void *param) {
   for (;;) {
     networkManager.loop();
     String state = classifyState(latestReadings);
+    updateRelay(latestReadings);
+    networkManager.publishMetrics(latestReadings, state);
+    esp_task_wdt_reset();
     networkManager.publishMetrics(latestReadings, state);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
@@ -91,6 +96,8 @@ void setup() {
   loader.load(deviceConfig);
 
   sensorManager.begin(deviceConfig);
+  dataLogger.begin();
+  dataLogger.configure(deviceConfig.logging);
   ConfigLoader loader;
   loader.load(deviceConfig);
 

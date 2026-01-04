@@ -2,11 +2,14 @@
 
 #include <Arduino.h>
 #include <SD.h>
+#include "Config.h"
 #include "SensorReadings.h"
 
 class DataLogger {
  public:
   bool begin() { return SD.begin(); }
+
+  void configure(const LoggingConfig &config) { warn_percent = config.sd_warn_percent; }
 
   bool ensureReady() {
     if (!SD.begin()) {
@@ -28,6 +31,7 @@ class DataLogger {
     if (!ensureReady()) {
       return;
     }
+    checkStorage();
     rotateIfNeeded();
     File file = SD.open(currentLogFile().c_str(), FILE_APPEND);
     if (!file) {
@@ -66,6 +70,7 @@ class DataLogger {
  private:
   const size_t max_log_size = 5 * 1024 * 1024;
   const uint8_t max_log_files = 5;
+  uint8_t warn_percent = 90;
 
   String currentLogFile() { return "/logs/cnc_log.csv"; }
 
@@ -79,10 +84,23 @@ class DataLogger {
     if (size < max_log_size) {
       return;
     }
+    Serial.println("SD_LOG_ROTATE");
     Serial.println("SD_NEAR_FULL");
     String rotated = "/logs/cnc_log_" + String(millis()) + ".csv";
     SD.rename(currentLogFile().c_str(), rotated.c_str());
     cleanupOldLogs();
+  }
+
+  void checkStorage() {
+    uint64_t total = SD.totalBytes();
+    uint64_t used = SD.usedBytes();
+    if (total == 0) {
+      return;
+    }
+    uint8_t percent = static_cast<uint8_t>((used * 100) / total);
+    if (percent >= warn_percent) {
+      Serial.println("SD_NEAR_FULL");
+    }
   }
 
   void cleanupOldLogs() {
