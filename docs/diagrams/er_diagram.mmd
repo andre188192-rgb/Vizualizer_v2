@@ -1,0 +1,28 @@
+erDiagram
+  METRIC ||--o{ EVENT : triggers
+  METRIC {
+    datetime timestamp
+    float voltage
+    float current
+    float power
+    float flow_rate
+    float spindle_temp
+    float vibration_rms
+    float driver_current
+    bool ground_present
+    int cycle_count
+  }
+  EVENT {
+    int id
+    datetime timestamp
+    string category
+    string message
+    string severity
+  }
+  MAINTENANCE {
+    int id
+    datetime timestamp
+    string maintenance_type
+    string performed_by
+    string comment
+  }

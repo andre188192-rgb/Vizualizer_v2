@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant ESP32
+  participant MQTT
+  participant Backend
+  participant Frontend
+
+  ESP32->>MQTT: Publish metrics
+  MQTT->>Backend: Forward telemetry
+  Backend->>Backend: Store metrics/events
+  Backend-->>Frontend: WebSocket update
+  Frontend->>Backend: Snapshot request
+  Backend->>ESP32: Command via MQTT
