@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - CNC_API_KEY=changeme
+    volumes:
+      - ./backend/cnc_pulse.db:/app/cnc_pulse.db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000

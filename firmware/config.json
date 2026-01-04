@@ -1,0 +1,18 @@
+{
+  "wifi": {
+    "ssid": "YOUR_WIFI",
+    "password": "YOUR_PASSWORD"
+  },
+  "thresholds": {
+    "vibration_warn": 0.8,
+    "vibration_alarm": 1.2,
+    "spindle_temp_warn": 55.0,
+    "spindle_temp_alarm": 70.0
+  },
+  "snapshot_minutes": 5,
+  "mqtt": {
+    "host": "broker.local",
+    "port": 1883,
+    "topic": "cnc/pulse"
+  }
+}
