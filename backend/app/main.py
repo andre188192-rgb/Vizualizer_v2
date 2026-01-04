@@ -23,6 +23,13 @@ BASIC_PASS = os.getenv("CNC_BASIC_PASS", "admin")
 
 engine = create_engine(DATABASE_URL, echo=False)
 security = HTTPBasic()
+from datetime import datetime
+from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from .models import MetricPayload, SnapshotRequest
+from .storage import store
 
 app = FastAPI(title="CNC Pulse Monitor API")
 
@@ -74,6 +81,16 @@ def get_current_user(credentials: HTTPBasicCredentials = Depends(security)) -> s
     if not (is_user and is_pass):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return credentials.username
+class MaintenancePayload(BaseModel):
+    maintenance_type: str
+    performed_by: str
+    comment: str | None = None
+
+
+class EventPayload(BaseModel):
+    category: str
+    message: str
+    severity: str = "INFO"
 
 
 @app.get("/health")
@@ -96,6 +113,15 @@ async def ingest_metrics(payload: MetricPayload, session: Session = Depends(get_
             )
         )
     session.commit()
+@app.post("/metrics")
+async def ingest_metrics(payload: MetricPayload) -> dict:
+    store.add_metric(payload)
+    if payload.state in {"WARN", "ALARM"}:
+        store.add_event(
+            category="state",
+            message=f"State changed to {payload.state}",
+            severity=payload.state,
+        )
     return {"status": "accepted"}
 
 
@@ -123,6 +149,18 @@ async def add_event(payload: EventPayload, session: Session = Depends(get_sessio
     session.add(record)
     session.commit()
     session.refresh(record)
+async def list_metrics() -> dict:
+    return {"metrics": list(store.metrics)}
+
+
+@app.get("/events")
+async def list_events() -> dict:
+    return {"events": store.list_events()}
+
+
+@app.post("/events")
+async def add_event(payload: EventPayload) -> dict:
+    record = store.add_event(payload.category, payload.message, payload.severity)
     return {"event": record}
 
 
@@ -215,6 +253,38 @@ async def api_list(limit: int = 200, session: Session = Depends(get_session)) ->
     return await list_metrics(limit, session)
 
 
+async def list_maintenance() -> dict:
+    return {"maintenance": store.list_maintenance()}
+
+
+@app.post("/maintenance")
+async def add_maintenance(payload: MaintenancePayload) -> dict:
+    record = store.add_maintenance(
+        payload.maintenance_type, payload.performed_by, payload.comment
+    )
+    return {"maintenance": record}
+
+
+@app.post("/snapshot")
+async def request_snapshot(payload: SnapshotRequest) -> dict:
+    store.add_event(
+        category="snapshot",
+        message=f"Snapshot request for {payload.minutes} minutes",
+        severity="INFO",
+    )
+    return {"status": "queued", "minutes": payload.minutes}
+
+
+@app.post("/alarm/reset")
+async def reset_alarm() -> dict:
+    store.add_event(
+        category="alarm",
+        message="Alarm reset requested",
+        severity="INFO",
+    )
+    return {"status": "reset"}
+
+
 @app.websocket("/ws")
 async def websocket_stream(websocket: WebSocket) -> None:
     await websocket.accept()
@@ -223,6 +293,10 @@ async def websocket_stream(websocket: WebSocket) -> None:
             with Session(engine) as session:
                 payload = session.exec(select(Metric).order_by(Metric.timestamp.desc())).first()
             await websocket.send_json({"latest": payload.model_dump() if payload else None})
+            payload = store.metrics[-1] if store.metrics else None
+            await websocket.send_json(
+                {"latest": payload.dict() if payload else None}
+            )
             await websocket.receive_text()
     except Exception:
         await websocket.close()

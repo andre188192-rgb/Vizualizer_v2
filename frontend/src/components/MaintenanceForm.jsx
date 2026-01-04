@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { apiKeyFetch } from '../services/api.js'
 
 export default function MaintenanceForm({ apiKey, onSaved }) {
+
+const API_BASE = 'http://localhost:8000'
+
+export default function MaintenanceForm({ onSaved }) {
   const [maintenanceType, setMaintenanceType] = useState('Замена охлаждающей жидкости')
   const [performedBy, setPerformedBy] = useState('')
   const [comment, setComment] = useState('')
@@ -11,6 +15,9 @@ export default function MaintenanceForm({ apiKey, onSaved }) {
     await apiKeyFetch('/maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+    await fetch(`${API_BASE}/maintenance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         maintenance_type: maintenanceType,
         performed_by: performedBy,

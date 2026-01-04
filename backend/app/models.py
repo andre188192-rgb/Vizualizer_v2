@@ -15,6 +15,13 @@ class MetricPayload(BaseModel):
     vibration_y_rms: float | None = None
     vibration_z_rms: float | None = None
     motor_current: float | None = None
+    voltage: float
+    current: float
+    power: float
+    flow_rate: float
+    spindle_temp: float
+    vibration_rms: float
+    driver_current: float
     ground_present: bool
     cycle_count: int = Field(0, ge=0)
 
@@ -26,6 +33,17 @@ class EventPayload(BaseModel):
 
 
 class MaintenancePayload(BaseModel):
+class EventRecord(BaseModel):
+    id: int
+    timestamp: datetime
+    category: str
+    message: str
+    severity: str
+
+
+class MaintenanceRecord(BaseModel):
+    id: int
+    timestamp: datetime
     maintenance_type: str
     performed_by: str
     comment: str | None = None
