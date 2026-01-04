@@ -24,6 +24,18 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 CNC_API_KEY=changeme CNC_BASIC_USER=admin CNC_BASIC_PASS=admin uvicorn app.main:app --reload
+```
+
+Для Windows (PowerShell):
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:CNC_API_KEY="changeme"
+$env:CNC_BASIC_USER="admin"
+$env:CNC_BASIC_PASS="admin"
 uvicorn app.main:app --reload
 ```
 
@@ -45,6 +57,18 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
+
+Для Windows (PowerShell):
+
+```powershell
+cd desktop
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python main.py
+```
+
+Если `pip` пытается собрать NumPy из исходников, используйте Python 3.11 (x64) или установите Microsoft C++ Build Tools.
 
 ### Firmware
 
