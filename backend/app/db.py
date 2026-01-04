@@ -13,7 +13,10 @@ class Metric(SQLModel, table=True):
     flow_rate: float
     spindle_temp: float
     vibration_rms: float
-    driver_current: float
+    vibration_x_rms: float | None = None
+    vibration_y_rms: float | None = None
+    vibration_z_rms: float | None = None
+    motor_current: float | None = None
     ground_present: bool
     cycle_count: int
 
@@ -24,6 +27,7 @@ class Event(SQLModel, table=True):
     category: str
     message: str
     severity: str
+    resolved: bool = False
 
 
 class Maintenance(SQLModel, table=True):
@@ -38,5 +42,7 @@ class Threshold(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     vibration_warn: float
     vibration_alarm: float
+    vibration_reset: float
     spindle_temp_warn: float
     spindle_temp_alarm: float
+    spindle_temp_reset: float

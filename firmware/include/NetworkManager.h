@@ -37,7 +37,7 @@ class NetworkManager {
     if (!client.connected()) {
       return;
     }
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<768> doc;
     doc["timestamp"] = readings.timestamp;
     doc["state"] = state;
     doc["voltage"] = readings.voltage;
@@ -46,9 +46,17 @@ class NetworkManager {
     doc["flow_rate"] = readings.flow_rate;
     doc["spindle_temp"] = readings.spindle_temp;
     doc["vibration_rms"] = readings.vibration_rms;
-    doc["driver_current"] = readings.driver_current;
+    doc["vibration_x_rms"] = readings.vibration_x_rms;
+    doc["vibration_y_rms"] = readings.vibration_y_rms;
+    doc["vibration_z_rms"] = readings.vibration_z_rms;
+    doc["motor_current"] = readings.motor_current;
     doc["ground_present"] = readings.ground_present;
     doc["cycle_count"] = readings.cycle_count;
+    doc["status"]["pzem"] = static_cast<int>(readings.pzem_status);
+    doc["status"]["mpu"] = static_cast<int>(readings.mpu_status);
+    doc["status"]["temp"] = static_cast<int>(readings.temp_status);
+    doc["status"]["flow"] = static_cast<int>(readings.flow_status);
+    doc["status"]["motor_current"] = static_cast<int>(readings.current_status);
     String payload;
     serializeJson(doc, payload);
     client.publish(settings.mqtt_topic.c_str(), payload.c_str());

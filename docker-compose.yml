@@ -6,6 +6,8 @@ services:
       - "8000:8000"
     environment:
       - CNC_API_KEY=changeme
+      - CNC_BASIC_USER=admin
+      - CNC_BASIC_PASS=admin
     volumes:
       - ./backend/cnc_pulse.db:/app/cnc_pulse.db
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000

@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 
 class CncPulseAnalyzer(QtWidgets.QMainWindow):
@@ -15,6 +17,7 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
         self.resize(1400, 900)
 
         self.data = pd.DataFrame()
+        self.region = None
 
         self.plot_widget = pg.PlotWidget(title="Временные графики")
         self.fft_widget = pg.PlotWidget(title="Спектр вибрации (FFT)")
@@ -26,7 +29,7 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
         open_button = QtWidgets.QPushButton("Открыть лог")
         open_button.clicked.connect(self.open_log)
 
-        export_button = QtWidgets.QPushButton("Экспорт отчета")
+        export_button = QtWidgets.QPushButton("Export Report")
         export_button.clicked.connect(self.export_report)
 
         button_layout = QtWidgets.QHBoxLayout()
@@ -76,9 +79,8 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
         if "vibration_rms" in self.data.columns:
             vib = self.data["vibration_rms"].to_numpy()
             self.plot_widget.plot(vib, pen=pg.mkPen("#2563eb", width=2), name="RMS")
-            fft = np.abs(np.fft.rfft(vib - np.mean(vib)))
-            freqs = np.fft.rfftfreq(len(vib), d=0.001)
-            self.fft_widget.plot(freqs, fft, pen=pg.mkPen("#f97316", width=2))
+            self.add_region_selector(len(vib))
+            self.plot_fft(vib)
 
         if {"spindle_temp", "vibration_rms"}.issubset(self.data.columns):
             temp = self.data["spindle_temp"].to_numpy()
@@ -98,20 +100,58 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
                 value = str(self.data.iloc[row, col])
                 self.table.setItem(row, col, QtWidgets.QTableWidgetItem(value))
 
+    def add_region_selector(self, length: int) -> None:
+        if self.region:
+            self.plot_widget.removeItem(self.region)
+        self.region = pg.LinearRegionItem([0, min(500, length)])
+        self.region.setZValue(10)
+        self.plot_widget.addItem(self.region)
+        self.region.sigRegionChanged.connect(self.on_region_changed)
+
+    def on_region_changed(self) -> None:
+        if self.data.empty or "vibration_rms" not in self.data.columns:
+            return
+        start, end = map(int, self.region.getRegion())
+        vib = self.data["vibration_rms"].to_numpy()[start:end]
+        if vib.size > 10:
+            self.plot_fft(vib)
+
+    def plot_fft(self, signal: np.ndarray) -> None:
+        self.fft_widget.clear()
+        fft = np.abs(np.fft.rfft(signal - np.mean(signal)))
+        freqs = np.fft.rfftfreq(len(signal), d=0.001)
+        self.fft_widget.plot(freqs, fft, pen=pg.mkPen("#f97316", width=2))
+        peak_indices = np.argsort(fft)[-5:]
+        for idx in peak_indices:
+            freq = freqs[idx]
+            value = fft[idx]
+            text = pg.TextItem(text=f"{freq:.1f} Hz", anchor=(0, 1))
+            text.setPos(freq, value)
+            self.fft_widget.addItem(text)
+
     def export_report(self) -> None:
         if self.data.empty:
             QtWidgets.QMessageBox.information(self, "Отчет", "Сначала откройте лог")
             return
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Сохранить отчет", "report.txt", "Text (*.txt)"
+            self, "Сохранить отчет", "report.pdf", "PDF (*.pdf)"
         )
         if not path:
             return
+        pdf = canvas.Canvas(path, pagesize=A4)
+        pdf.setFont("Helvetica", 14)
+        pdf.drawString(40, 800, "CNC Pulse Monitor - Отчет")
+        pdf.setFont("Helvetica", 10)
         summary = self.data.describe(include="all").to_string()
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.write("Отчет CNC Pulse Monitor\n")
-            handle.write(summary)
-        QtWidgets.QMessageBox.information(self, "Отчет", "Отчет сохранен")
+        y = 780
+        for line in summary.split("\n"):
+            pdf.drawString(40, y, line[:110])
+            y -= 12
+            if y < 40:
+                pdf.showPage()
+                y = 800
+        pdf.save()
+        QtWidgets.QMessageBox.information(self, "Отчет", "PDF отчет сохранен")
 
 
 def main() -> None:

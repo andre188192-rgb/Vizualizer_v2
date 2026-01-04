@@ -14,6 +14,7 @@ static DataLogger dataLogger;
 static NetworkManager networkManager;
 static SensorReadings latestReadings;
 static uint32_t cycleCount = 0;
+static bool relayAlarm = false;
 
 TaskHandle_t sensorTaskHandle;
 TaskHandle_t loggerTaskHandle;
@@ -41,6 +42,21 @@ String classifyState(const SensorReadings &readings) {
   return "NORMAL";
 }
 
+void updateRelay(const SensorReadings &readings) {
+  if (relayAlarm) {
+    if (readings.vibration_rms < deviceConfig.thresholds.vibration_reset &&
+        readings.spindle_temp < deviceConfig.thresholds.spindle_temp_reset) {
+      relayAlarm = false;
+    }
+  } else {
+    if (readings.vibration_rms >= deviceConfig.thresholds.vibration_alarm ||
+        readings.spindle_temp >= deviceConfig.thresholds.spindle_temp_alarm) {
+      relayAlarm = true;
+    }
+  }
+  sensorManager.setAlarmRelay(relayAlarm);
+}
+
 void sensorTask(void *param) {
   for (;;) {
     sensorManager.sample(latestReadings);
@@ -55,7 +71,7 @@ void loggerTask(void *param) {
   for (;;) {
     dataLogger.logReadings(latestReadings);
     esp_task_wdt_reset();
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(deviceConfig.logging.interval_ms));
   }
 }
 
@@ -63,8 +79,8 @@ void networkTask(void *param) {
   for (;;) {
     networkManager.loop();
     String state = classifyState(latestReadings);
+    updateRelay(latestReadings);
     networkManager.publishMetrics(latestReadings, state);
-    sensorManager.setAlarmRelay(state == "ALARM");
     esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
@@ -73,10 +89,10 @@ void networkTask(void *param) {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  ConfigLoader loader;
+  ConfigManager loader;
   loader.load(deviceConfig);
 
-  sensorManager.begin();
+  sensorManager.begin(deviceConfig);
   dataLogger.begin();
   networkManager.begin(deviceConfig);
 

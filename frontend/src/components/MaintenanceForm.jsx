@@ -1,6 +1,5 @@
 import { useState } from 'react'
-
-const API_BASE = 'http://localhost:8000'
+import { apiKeyFetch } from '../services/api.js'
 
 export default function MaintenanceForm({ apiKey, onSaved }) {
   const [maintenanceType, setMaintenanceType] = useState('Замена охлаждающей жидкости')
@@ -9,7 +8,7 @@ export default function MaintenanceForm({ apiKey, onSaved }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    await fetch(`${API_BASE}/maintenance`, {
+    await apiKeyFetch('/maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
       body: JSON.stringify({

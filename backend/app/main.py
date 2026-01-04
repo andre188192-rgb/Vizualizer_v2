@@ -1,8 +1,10 @@
 import os
+import secrets
 from datetime import datetime
 
 from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from .db import Event, Maintenance, Metric, Threshold
@@ -16,8 +18,11 @@ from .models import (
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./cnc_pulse.db")
 API_KEY = os.getenv("CNC_API_KEY", "changeme")
+BASIC_USER = os.getenv("CNC_BASIC_USER", "admin")
+BASIC_PASS = os.getenv("CNC_BASIC_PASS", "admin")
 
 engine = create_engine(DATABASE_URL, echo=False)
+security = HTTPBasic()
 
 app = FastAPI(title="CNC Pulse Monitor API")
 
@@ -39,8 +44,10 @@ def init_db() -> None:
                 Threshold(
                     vibration_warn=0.8,
                     vibration_alarm=1.2,
+                    vibration_reset=0.6,
                     spindle_temp_warn=55.0,
                     spindle_temp_alarm=70.0,
+                    spindle_temp_reset=50.0,
                 )
             )
             session.commit()
@@ -61,6 +68,14 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+    is_user = secrets.compare_digest(credentials.username, BASIC_USER)
+    is_pass = secrets.compare_digest(credentials.password, BASIC_PASS)
+    if not (is_user and is_pass):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return credentials.username
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "time": datetime.utcnow()}
@@ -77,6 +92,7 @@ async def ingest_metrics(payload: MetricPayload, session: Session = Depends(get_
                 category="state",
                 message=f"State changed to {payload.state}",
                 severity=payload.state,
+                resolved=False,
             )
         )
     session.commit()
@@ -102,6 +118,7 @@ async def add_event(payload: EventPayload, session: Session = Depends(get_sessio
         category=payload.category,
         message=payload.message,
         severity=payload.severity,
+        resolved=False,
     )
     session.add(record)
     session.commit()
@@ -160,6 +177,7 @@ async def request_snapshot(payload: SnapshotRequest, session: Session = Depends(
             category="snapshot",
             message=f"Snapshot request for {payload.minutes} minutes",
             severity="INFO",
+            resolved=False,
         )
     )
     session.commit()
@@ -174,10 +192,27 @@ async def reset_alarm(session: Session = Depends(get_session)) -> dict:
             category="alarm",
             message="Alarm reset requested",
             severity="INFO",
+            resolved=False,
         )
     )
     session.commit()
     return {"status": "reset"}
+
+
+@app.get("/api/config", dependencies=[Depends(get_current_user)])
+async def get_config(session: Session = Depends(get_session)) -> dict:
+    threshold = session.exec(select(Threshold)).first()
+    return {"thresholds": threshold}
+
+
+@app.post("/api/data", dependencies=[Depends(get_current_user)])
+async def api_ingest(payload: MetricPayload, session: Session = Depends(get_session)) -> dict:
+    return await ingest_metrics(payload, session)
+
+
+@app.get("/api/data", dependencies=[Depends(get_current_user)])
+async def api_list(limit: int = 200, session: Session = Depends(get_session)) -> dict:
+    return await list_metrics(limit, session)
 
 
 @app.websocket("/ws")
