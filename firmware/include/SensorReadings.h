@@ -29,4 +29,15 @@ struct SensorReadings {
   SensorStatus temp_status = SensorStatus::ERROR;
   SensorStatus flow_status = SensorStatus::ERROR;
   SensorStatus current_status = SensorStatus::ERROR;
+struct SensorReadings {
+  float voltage;
+  float current;
+  float power;
+  float flow_rate;
+  float spindle_temp;
+  float vibration_rms;
+  float driver_current;
+  bool ground_present;
+  uint32_t cycle_count;
+  String timestamp;
 };

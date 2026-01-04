@@ -29,6 +29,10 @@ class NetworkManager {
     }
     if (!client.connected()) {
       reconnectMqtt();
+      return;
+    }
+    if (!client.connected()) {
+      reconnect();
     }
     client.loop();
   }
@@ -38,6 +42,7 @@ class NetworkManager {
       return;
     }
     StaticJsonDocument<768> doc;
+    StaticJsonDocument<512> doc;
     doc["timestamp"] = readings.timestamp;
     doc["state"] = state;
     doc["voltage"] = readings.voltage;
@@ -57,6 +62,9 @@ class NetworkManager {
     doc["status"]["temp"] = static_cast<int>(readings.temp_status);
     doc["status"]["flow"] = static_cast<int>(readings.flow_status);
     doc["status"]["motor_current"] = static_cast<int>(readings.current_status);
+    doc["driver_current"] = readings.driver_current;
+    doc["ground_present"] = readings.ground_present;
+    doc["cycle_count"] = readings.cycle_count;
     String payload;
     serializeJson(doc, payload);
     client.publish(settings.mqtt_topic.c_str(), payload.c_str());
@@ -86,6 +94,11 @@ class NetworkManager {
       return;
     }
     lastMqttAttempt = millis();
+
+  void reconnect() {
+    if (settings.mqtt_host.length() == 0) {
+      return;
+    }
     String clientId = "cnc-pulse-" + String(random(0xffff), HEX);
     client.connect(clientId.c_str());
   }
