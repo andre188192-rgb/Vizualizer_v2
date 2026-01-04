@@ -5,10 +5,6 @@
 ## Структура репозитория
 
 - `firmware/` — прошивка ESP32 (PlatformIO).
-- `backend/` — FastAPI сервер с SQLite (можно заменить на PostgreSQL).
-- `frontend/` — Web-клиент (React + Vite).
-- `desktop/` — инженерное приложение (PyQt5).
-- `docs/` — документация (Markdown) и диаграммы.
 - `backend/` — FastAPI сервер.
 - `frontend/` — Web-клиент (React + Vite).
 - `desktop/` — инженерное приложение (PyQt5).
