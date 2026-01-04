@@ -1,0 +1,7 @@
+flowchart LR
+  ESP32[ESP32 Edge Module] -->|MQTT/REST| Backend[Backend API]
+  ESP32 -->|SD Logs| SDCard[SD Card]
+  Backend -->|WebSocket/REST| Frontend[Web Client]
+  Backend --> Database[(TimescaleDB)]
+  Frontend --> Operator[Operator]
+  Backend --> EngineerApp[Engineer Desktop App]

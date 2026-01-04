@@ -1,0 +1,6 @@
+PyQt5==5.15.11
+pyqtgraph==0.13.7
+numpy==1.26.4; python_version < "3.12"
+numpy==2.0.1; python_version >= "3.12"
+pandas==2.2.2
+reportlab==4.2.0
