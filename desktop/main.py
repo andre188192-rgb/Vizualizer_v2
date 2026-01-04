@@ -22,6 +22,12 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
         self.plot_widget = pg.PlotWidget(title="Временные графики")
         self.fft_widget = pg.PlotWidget(title="Спектр вибрации (FFT)")
         self.corr_widget = pg.PlotWidget(title="Корреляция: температура vs вибрация")
+        self.resize(1200, 800)
+
+        self.data = pd.DataFrame()
+
+        self.plot_widget = pg.PlotWidget(title="Временные графики")
+        self.fft_widget = pg.PlotWidget(title="Спектр вибрации (FFT)")
         self.table = QtWidgets.QTableWidget()
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
@@ -30,6 +36,7 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
         open_button.clicked.connect(self.open_log)
 
         export_button = QtWidgets.QPushButton("Export Report")
+        export_button = QtWidgets.QPushButton("Экспорт PDF отчета")
         export_button.clicked.connect(self.export_report)
 
         button_layout = QtWidgets.QHBoxLayout()
@@ -91,6 +98,9 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
             self.corr_widget.addItem(scatter)
             self.corr_widget.setLabel("bottom", "Температура, °C")
             self.corr_widget.setLabel("left", "Вибрация RMS, g")
+            fft = np.abs(np.fft.rfft(vib - np.mean(vib)))
+            freqs = np.fft.rfftfreq(len(vib), d=0.001)
+            self.fft_widget.plot(freqs, fft, pen=pg.mkPen("#f97316", width=2))
 
         self.table.setRowCount(min(len(self.data), 200))
         self.table.setColumnCount(len(self.data.columns))
@@ -152,6 +162,15 @@ class CncPulseAnalyzer(QtWidgets.QMainWindow):
                 y = 800
         pdf.save()
         QtWidgets.QMessageBox.information(self, "Отчет", "PDF отчет сохранен")
+            self, "Сохранить отчет", "report.txt", "Text (*.txt)"
+        )
+        if not path:
+            return
+        summary = self.data.describe(include="all").to_string()
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("Отчет CNC Pulse Monitor\n")
+            handle.write(summary)
+        QtWidgets.QMessageBox.information(self, "Отчет", "Отчет сохранен")
 
 
 def main() -> None:
