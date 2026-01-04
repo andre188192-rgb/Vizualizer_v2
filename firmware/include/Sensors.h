@@ -1,6 +1,12 @@
 #pragma once
 
 #include <Arduino.h>
+#include <PZEM004Tv30.h>
+#include <Wire.h>
+#include <MPU6050.h>
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include "Config.h"
 #include "SensorReadings.h"
 
 class SensorManager {

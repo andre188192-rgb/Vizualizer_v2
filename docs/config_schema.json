@@ -15,6 +15,10 @@
       "properties": {
         "vibration_warn": {"type": "number"},
         "vibration_alarm": {"type": "number"},
+        "vibration_reset": {"type": "number"},
+        "spindle_temp_warn": {"type": "number"},
+        "spindle_temp_alarm": {"type": "number"},
+        "spindle_temp_reset": {"type": "number"}
         "spindle_temp_warn": {"type": "number"},
         "spindle_temp_alarm": {"type": "number"}
       }
@@ -26,6 +30,27 @@
         "host": {"type": "string"},
         "port": {"type": "integer"},
         "topic": {"type": "string"}
+      }
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "interval_ms": {"type": "integer"},
+        "sd_warn_percent": {"type": "integer"}
+      }
+    },
+    "pins": {
+      "type": "object",
+      "properties": {
+        "flow_pin": {"type": "integer"},
+        "ground_pin": {"type": "integer"},
+        "relay_pin": {"type": "integer"},
+        "ds18b20_pin": {"type": "integer"},
+        "acs712_pin": {"type": "integer"},
+        "pzem_rx": {"type": "integer"},
+        "pzem_tx": {"type": "integer"},
+        "mpu_sda": {"type": "integer"},
+        "mpu_scl": {"type": "integer"}
       }
     }
   }

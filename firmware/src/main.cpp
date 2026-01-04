@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SD.h>
+#include <esp_task_wdt.h>
 #include <time.h>
 #include "Config.h"
 #include "SensorReadings.h"
@@ -13,6 +14,7 @@ static DataLogger dataLogger;
 static NetworkManager networkManager;
 static SensorReadings latestReadings;
 static uint32_t cycleCount = 0;
+static bool relayAlarm = false;
 
 TaskHandle_t sensorTaskHandle;
 TaskHandle_t loggerTaskHandle;
@@ -40,11 +42,28 @@ String classifyState(const SensorReadings &readings) {
   return "NORMAL";
 }
 
+void updateRelay(const SensorReadings &readings) {
+  if (relayAlarm) {
+    if (readings.vibration_rms < deviceConfig.thresholds.vibration_reset &&
+        readings.spindle_temp < deviceConfig.thresholds.spindle_temp_reset) {
+      relayAlarm = false;
+    }
+  } else {
+    if (readings.vibration_rms >= deviceConfig.thresholds.vibration_alarm ||
+        readings.spindle_temp >= deviceConfig.thresholds.spindle_temp_alarm) {
+      relayAlarm = true;
+    }
+  }
+  sensorManager.setAlarmRelay(relayAlarm);
+}
+
 void sensorTask(void *param) {
   for (;;) {
     sensorManager.sample(latestReadings);
     latestReadings.timestamp = timestampNow();
     latestReadings.cycle_count = cycleCount;
+    esp_task_wdt_reset();
+    vTaskDelay(pdMS_TO_TICKS(200));
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
@@ -68,6 +87,10 @@ void networkTask(void *param) {
 void setup() {
   Serial.begin(115200);
   delay(1000);
+  ConfigManager loader;
+  loader.load(deviceConfig);
+
+  sensorManager.begin(deviceConfig);
   ConfigLoader loader;
   loader.load(deviceConfig);
 
@@ -77,6 +100,8 @@ void setup() {
 
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
+  esp_task_wdt_init(10, true);
+  esp_task_wdt_add(nullptr);
   if (!SD.exists("/logs")) {
     SD.mkdir("/logs");
   }
@@ -93,5 +118,6 @@ void loop() {
     cycleCount++;
   }
   lastPower = powerPresent;
+  esp_task_wdt_reset();
   delay(1000);
 }
