@@ -19,6 +19,8 @@
         "spindle_temp_warn": {"type": "number"},
         "spindle_temp_alarm": {"type": "number"},
         "spindle_temp_reset": {"type": "number"}
+        "spindle_temp_warn": {"type": "number"},
+        "spindle_temp_alarm": {"type": "number"}
       }
     },
     "snapshot_minutes": {"type": "integer"},

@@ -64,6 +64,7 @@ void sensorTask(void *param) {
     latestReadings.cycle_count = cycleCount;
     esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -72,6 +73,7 @@ void loggerTask(void *param) {
     dataLogger.logReadings(latestReadings);
     esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(deviceConfig.logging.interval_ms));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
@@ -82,6 +84,7 @@ void networkTask(void *param) {
     updateRelay(latestReadings);
     networkManager.publishMetrics(latestReadings, state);
     esp_task_wdt_reset();
+    networkManager.publishMetrics(latestReadings, state);
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
@@ -95,12 +98,20 @@ void setup() {
   sensorManager.begin(deviceConfig);
   dataLogger.begin();
   dataLogger.configure(deviceConfig.logging);
+  ConfigLoader loader;
+  loader.load(deviceConfig);
+
+  sensorManager.begin();
+  dataLogger.begin();
   networkManager.begin(deviceConfig);
 
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
   esp_task_wdt_init(10, true);
   esp_task_wdt_add(nullptr);
+  if (!SD.exists("/logs")) {
+    SD.mkdir("/logs");
+  }
 
   xTaskCreatePinnedToCore(sensorTask, "SensorTask", 4096, nullptr, 2, &sensorTaskHandle, 1);
   xTaskCreatePinnedToCore(loggerTask, "LoggerTask", 4096, nullptr, 1, &loggerTaskHandle, 1);

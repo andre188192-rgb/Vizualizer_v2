@@ -19,6 +19,11 @@ class DataLogger {
     if (!SD.exists("/logs")) {
       SD.mkdir("/logs");
     }
+  bool begin() {
+    if (!SD.begin()) {
+      Serial.println("Failed to init SD for logger");
+      return false;
+    }
     return true;
   }
 
@@ -48,6 +53,17 @@ class DataLogger {
         readings.motor_current,
         readings.ground_present ? 1 : 0,
         readings.cycle_count);
+    file.printf("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.3f,%.2f,%d,%lu\n",
+                readings.timestamp.c_str(),
+                readings.voltage,
+                readings.current,
+                readings.power,
+                readings.flow_rate,
+                readings.spindle_temp,
+                readings.vibration_rms,
+                readings.driver_current,
+                readings.ground_present ? 1 : 0,
+                readings.cycle_count);
     file.close();
   }
 
@@ -69,6 +85,7 @@ class DataLogger {
       return;
     }
     Serial.println("SD_LOG_ROTATE");
+    Serial.println("SD_NEAR_FULL");
     String rotated = "/logs/cnc_log_" + String(millis()) + ".csv";
     SD.rename(currentLogFile().c_str(), rotated.c_str());
     cleanupOldLogs();
@@ -117,5 +134,7 @@ class DataLogger {
       oldest = rootDelete.openNextFile();
     }
     rootDelete.close();
+  String currentLogFile() {
+    return "/logs/cnc_log.csv";
   }
 };

@@ -9,6 +9,10 @@
 - `frontend/` — Web-клиент (React + Vite).
 - `desktop/` — инженерное приложение (PyQt5).
 - `docs/` — документация (Markdown) и диаграммы.
+- `backend/` — FastAPI сервер.
+- `frontend/` — Web-клиент (React + Vite).
+- `desktop/` — инженерное приложение (PyQt5).
+- `docs/` — документация (.docx) и диаграммы.
 
 ## Быстрый старт
 
@@ -20,6 +24,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 CNC_API_KEY=changeme CNC_BASIC_USER=admin CNC_BASIC_PASS=admin uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ### Frontend
@@ -28,6 +33,7 @@ CNC_API_KEY=changeme CNC_BASIC_USER=admin CNC_BASIC_PASS=admin uvicorn app.main:
 cd frontend
 npm install
 VITE_API_USER=admin VITE_API_PASS=admin npm run dev
+npm run dev
 ```
 
 ### Desktop

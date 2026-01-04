@@ -10,6 +10,8 @@
     "spindle_temp_warn": 55.0,
     "spindle_temp_alarm": 70.0,
     "spindle_temp_reset": 50.0
+    "spindle_temp_warn": 55.0,
+    "spindle_temp_alarm": 70.0
   },
   "snapshot_minutes": 5,
   "mqtt": {

@@ -33,6 +33,8 @@ struct PinConfig {
 struct LoggingConfig {
   uint32_t interval_ms;
   uint8_t sd_warn_percent;
+  float spindle_temp_warn;
+  float spindle_temp_alarm;
 };
 
 struct DeviceConfig {
@@ -47,6 +49,7 @@ struct DeviceConfig {
 };
 
 class ConfigManager {
+class ConfigLoader {
  public:
   bool load(DeviceConfig &config) {
     if (!SD.begin()) {
@@ -62,6 +65,11 @@ class ConfigManager {
       return false;
     }
     StaticJsonDocument<1024> doc;
+      Serial.println("config.json not found, using defaults");
+      setDefaults(config);
+      return false;
+    }
+    StaticJsonDocument<768> doc;
     DeserializationError err = deserializeJson(doc, file);
     file.close();
     if (err) {
@@ -78,6 +86,8 @@ class ConfigManager {
     config.thresholds.spindle_temp_warn = doc["thresholds"]["spindle_temp_warn"] | 55.0;
     config.thresholds.spindle_temp_alarm = doc["thresholds"]["spindle_temp_alarm"] | 70.0;
     config.thresholds.spindle_temp_reset = doc["thresholds"]["spindle_temp_reset"] | 50.0;
+    config.thresholds.spindle_temp_warn = doc["thresholds"]["spindle_temp_warn"] | 55.0;
+    config.thresholds.spindle_temp_alarm = doc["thresholds"]["spindle_temp_alarm"] | 70.0;
     config.snapshot_minutes = doc["snapshot_minutes"] | 5;
     config.mqtt_host = doc["mqtt"]["host"].as<String>();
     config.mqtt_port = doc["mqtt"]["port"] | 1883;
@@ -138,6 +148,7 @@ class ConfigManager {
     config.wifi.ssid = "";
     config.wifi.password = "";
     config.thresholds = {0.8f, 1.2f, 0.6f, 55.0f, 70.0f, 50.0f};
+    config.thresholds = {0.8f, 1.2f, 55.0f, 70.0f};
     config.snapshot_minutes = 5;
     config.mqtt_host = "";
     config.mqtt_port = 1883;
